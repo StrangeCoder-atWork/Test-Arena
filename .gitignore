@@ -1,0 +1,22 @@
+# node + build
+node_modules/
+.expo/
+.expo-shared/
+dist/
+build/
+*.apk
+
+# Android
+android/.gradle
+android/.idea
+android/app/build/
+android/.cxx/
+android/local.properties
+
+# iOS (if exists)
+ios/Pods/
+ios/build/
+
+# OS
+.DS_Store
+Thumbs.db

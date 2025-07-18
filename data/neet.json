@@ -1,0 +1,37 @@
+{
+  "NEET": {
+    "Physics": [
+      "Physics and Measurement",
+      "Kinematics",
+      "Laws of Motion",
+      "Work, Energy and Power",
+      "Rotational Motion",
+      "Gravitation",
+      "Properties of Solids and Liquids",
+      "Thermodynamics",
+      "Oscillations and Waves",
+      "Optics"
+    ],
+    "Chemistry": [
+      "Some Basic Concepts",
+      "Atomic Structure",
+      "Chemical Bonding",
+      "Thermodynamics",
+      "Equilibrium",
+      "Redox Reactions",
+      "Organic Chemistry Basics"
+    ],
+    "Biology": [
+      "Diversity in Living World",
+      "Structural Organisation in Animals and Plants",
+      "Cell Structure and Function",
+      "Plant Physiology",
+      "Human Physiology",
+      "Reproduction",
+      "Genetics and Evolution",
+      "Biology and Human Welfare",
+      "Biotechnology",
+      "Ecology and Environment"
+    ]
+  }
+}

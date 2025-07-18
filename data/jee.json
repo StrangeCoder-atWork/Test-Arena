@@ -1,0 +1,29 @@
+{
+  "JEE Main": {
+    "Physics": [
+      "Electrostatics",
+      "Current Electricity",
+      "Magnetism",
+      "Oscillations and Waves",
+      "Optics",
+      "Modern Physics"
+    ],
+    "Chemistry": [
+      "Physical Chemistry Fundamentals",
+      "Periodic Table",
+      "Chemical Bonding",
+      "Thermodynamics",
+      "Chemical Kinetics",
+      "Organic Chemistry Basics"
+    ],
+    "Mathematics": [
+      "Sets, Relations and Functions",
+      "Complex Numbers and Quadratic Equations",
+      "Limits, Continuity and Differentiability",
+      "Integral Calculus",
+      "Coordinate Geometry",
+      "Vectors and 3D Geometry",
+      "Probability and Statistics"
+    ]
+  }
+}
