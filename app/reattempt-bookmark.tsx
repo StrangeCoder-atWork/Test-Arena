@@ -8,11 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ImageViewing from 'react-native-image-viewing';
 import PagerView from 'react-native-pager-view';
 
 export default function ReattemptBookmark() {
   const pagerRef = useRef<PagerView>(null);
-  const { indexes } = useLocalSearchParams();
+  const { indexes, startIndex } = useLocalSearchParams();
+  const pageStart = Number(startIndex) || 0;
+const [currentIndex, setCurrentIndex] = useState(Number(startIndex) || 0)
+
 
   const selectedIndexes = indexes
     ? typeof indexes === 'string'
@@ -29,6 +33,11 @@ export default function ReattemptBookmark() {
   const [perTime, setPerTime] = useState(0);
   const perTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Zoom image state
+  const [isQuestionImageVisible, setQuestionImageVisible] = useState(false);
+  const [isSolutionImageVisible, setSolutionImageVisible] = useState(false);
+  const [zoomImageUri, setZoomImageUri] = useState('');
+
   useEffect(() => {
     const load = async () => {
       const data = await AsyncStorage.getItem('@bookmarks');
@@ -42,7 +51,11 @@ export default function ReattemptBookmark() {
     };
     load();
   }, []);
-
+useEffect(() => {
+  if (bookmarks.length && pagerRef.current) {
+    pagerRef.current.setPageWithoutAnimation?.(pageStart);
+  }
+}, [bookmarks]);
   useEffect(() => {
     if (perTimerRef.current) clearInterval(perTimerRef.current);
     const start = times[current] || 0;
@@ -65,6 +78,7 @@ export default function ReattemptBookmark() {
     const sec = s % 60;
     return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
   };
+if (!bookmarks.length) return null;
 
   return (
     <View style={styles.container}>
@@ -75,7 +89,8 @@ export default function ReattemptBookmark() {
 
       <PagerView
         style={{ flex: 1 }}
-        initialPage={0}
+        initialPage={currentIndex}
+
         onPageSelected={e => setCurrent(e.nativeEvent.position)}
         ref={pagerRef}
       >
@@ -86,7 +101,14 @@ export default function ReattemptBookmark() {
               <Text style={styles.qTitle}>Q{index + 1}</Text>
 
               {q.questionImage ? (
-                <Image source={{ uri: q.questionImage }} style={styles.qImage} resizeMode="contain" />
+                <TouchableOpacity
+                  onPress={() => {
+                    setZoomImageUri(q.questionImage);
+                    setQuestionImageVisible(true);
+                  }}
+                >
+                  <Image source={{ uri: q.questionImage }} style={styles.qImage} resizeMode="contain" />
+                </TouchableOpacity>
               ) : (
                 <Text style={{ color: '#999', marginBottom: 12 }}>No question image</Text>
               )}
@@ -132,15 +154,41 @@ export default function ReattemptBookmark() {
 
               {/* Solution image only after answering */}
               {answered && q.solutionImage && (
-                <Image source={{ uri: q.solutionImage }} style={styles.solutionImage} resizeMode="contain" />
+                <TouchableOpacity
+                  onPress={() => {
+                    setZoomImageUri(q.solutionImage);
+                    setSolutionImageVisible(true);
+                  }}
+                >
+                  <Image source={{ uri: q.solutionImage }} style={styles.solutionImage} resizeMode="contain" />
+                </TouchableOpacity>
               )}
             </View>
           );
         })}
       </PagerView>
+
+      {/* Fullscreen Zoom Modal */}
+     {zoomImageUri !== '' && (
+  <ImageViewing
+    images={[{ uri: zoomImageUri }]}
+    imageIndex={0}
+    visible={true}
+    onRequestClose={() => {
+      setZoomImageUri('');
+      setQuestionImageVisible(false);
+      setSolutionImageVisible(false);
+    }}
+    backgroundColor="#000"
+    swipeToCloseEnabled
+    doubleTapToZoomEnabled
+  />
+)}
+
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0A' },

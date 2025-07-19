@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -13,10 +14,9 @@ import {
 import { Dropdown } from 'react-native-element-dropdown';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import syllabus from '../data/syllabus.json';
-
 export default function TestSetup() {
   const router = useRouter();
-
+const params = useLocalSearchParams();
   const [examParam, setExamParam] = useState<string | null>(null);
   const [subject, setSubject] = useState<string | null>(null);
   const [chapter, setChapter] = useState<string | null>(null);
@@ -25,16 +25,20 @@ export default function TestSetup() {
   const [endQ, setEndQ] = useState<string>('');
   const [duration, setDuration] = useState<string>('600');
   const [subjectOptions, setSubjectOptions] = useState<any[]>([]);
+  const [questionType, setQuestionType] = useState<any[]>([]);
+  const [integerAnswer, setIntegerAnswer] = useState<any[]>([]);
   const [chapterOptions, setChapterOptions] = useState<any[]>([]);
   const [chapterNumberOptions, setChapterNumberOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+const examName = (typeof params.exam === 'string' ? params.exam : '').toUpperCase();
+const isIITJEE = examName.includes('IIT JEE');
 
   // Timing map
   const perQTimeMap: Record<string, number> = {
-    NEET: 60,
-    IIT_JEE: 60,
-    SSC_JE: 38,
-    SSC_CGL: 38,
+    NEET: 144,
+    IIT_JEE: 144,
+    SSC_JE: 36,
+    SSC_CGL: 36,
   };
 
   // Map human-readable exam names to timing keys
@@ -246,6 +250,28 @@ export default function TestSetup() {
             }}
           />
         </View>
+{isIITJEE && (
+  <>
+    <Picker
+      selectedValue={questionType}
+      onValueChange={(val) => setQuestionType(val)}
+    >
+      <Picker.Item label="Single Correct" value="single" />
+      <Picker.Item label="Multiple Correct" value="multi" />
+      <Picker.Item label="Integer Type" value="integer" />
+    </Picker>
+
+
+    {questionType.toString() === 'integer' && (
+      <TextInput
+        placeholder="Enter correct integer"
+        value={integerAnswer.toString()}
+        onChangeText={(text) => setIntegerAnswer([parseInt(text)])}
+        keyboardType="numeric"
+      />
+    )}
+  </>
+)}
 
         <Text style={styles.infoText}>Estimated Time: {readableTime(parseInt(duration))}</Text>
 

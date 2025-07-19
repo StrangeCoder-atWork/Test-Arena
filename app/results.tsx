@@ -50,6 +50,38 @@ export default function ResultsScreen() {
     animationRef.current?.play();
   }, []);
 
+  const { exam } = useLocalSearchParams();
+
+  const getMarkingScheme = (exam: string) => {
+    switch (exam.toLowerCase()) {
+      case 'iit jee':
+        return { correct: 4, wrong: -1 };
+      case 'neet':
+        return { correct: 4, wrong: -1 };
+      case 'ssc cgl':
+      case 'ssc je':
+        return { correct: 1, wrong: -0.25 };
+      default:
+        return { correct: 1, wrong: -0.25 };
+    }
+  };
+
+  const marking = getMarkingScheme(exam as string || '');
+  const totalScore = (correctCount * marking.correct) + (wrongCount * marking.wrong);
+
+
+  useEffect(() => {
+    AsyncStorage.setItem('@lastScore', JSON.stringify({
+      exam,
+      score: totalScore,
+      correct: correctCount,
+      wrong: wrongCount,
+      unattempted: unattemptedCount,
+      accuracy,
+      date: new Date().toISOString()
+    }));
+  }, [totalScore]);
+
   const getBadge = () => {
     if (accuracy >= 90) return '🏆 Excellent!';
     if (accuracy >= 70) return '💪 Good Job';
@@ -71,14 +103,11 @@ export default function ResultsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.navbar}>
-        <Text style={styles.navTitle}>Review Answers</Text>
+        <Text style={styles.navTitle}>Test Summary</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-        <Text style={styles.scoreText}>{correctCount}/{attempted} Correct</Text>
-        <Text style={styles.accuracyText}>{accuracy}% Accuracy</Text>
-        <Text style={styles.badge}>{getBadge()}</Text>
         <LottieView
           ref={animationRef}
           source={require('../assets/confetti.json')}
@@ -86,16 +115,21 @@ export default function ResultsScreen() {
           autoPlay
           loop={false}
         />
+        <Text style={styles.scoreBig}>{totalScore} pts</Text>
+        <Text style={styles.accuracyText}>{correctCount}/{attempted} Correct • {accuracy}% Accuracy</Text>
+        <Text style={styles.scoreExplain}>({marking.correct}/correct, {marking.wrong}/wrong)</Text>
+        <Text style={styles.badge}>{getBadge()}</Text>
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.statsCard}>
         <StatRow label="⏱ Avg Time / Attempt" value={`${avgTime}s`} />
-        <StatRow label="✅ Attempted" value={attempted} />
+        <StatRow label="🔵 Attempted" value={attempted} />
+        <StatRow label="✅ Correct" value={correctCount} />
         <StatRow label="❌ Wrong" value={wrongCount} />
         <StatRow label="⛔ Unattempted" value={unattemptedCount} />
       </Animated.View>
 
-      <Card title="Performance Pie Chart">
+      <Card title="Performance Overview">
         <PieChart
           data={[
             { name: 'Correct', population: correctCount, color: '#00C853', legendFontColor: '#DDD', legendFontSize: 14 },
@@ -112,47 +146,34 @@ export default function ResultsScreen() {
         />
       </Card>
 
-      <Card title="Bar Graph Overview">
-       <BarChart
-         yAxisLabel=""
-         yAxisSuffix=""
-  data={{
-    labels: ['Correct', 'Wrong', 'Unattempted'],
-    datasets: [
-      {
-        data: [correctCount, wrongCount, unattemptedCount],
-      },
-    ],
-  }}
-  width={WIDTH}
-  height={240}
-  yAxisInterval={1}
-  fromZero
-  showValuesOnTopOfBars
-  withInnerLines={false}
-  withHorizontalLabels={true}
-  chartConfig={{
-    backgroundGradientFrom: '#1E1E1E',
-    backgroundGradientTo: '#1E1E1E',
-    fillShadowGradient: '#4FC3F7',
-    fillShadowGradientOpacity: 1,
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(79, 195, 247, ${opacity})`,
-    labelColor: () => '#FFF',
-    propsForBackgroundLines: {
-      strokeWidth: 0,
-    },
-    propsForLabels: {
-      fontSize: 13,
-    },
-    propsForVerticalLabels: {
-      fontWeight: '600',
-    },
-    barPercentage: 0.6,
-  }}
-  style={{ marginTop: 12, borderRadius: 12 }}
-/>
-
+      <Card title="Answer Distribution">
+        <BarChart
+          yAxisLabel=""
+          yAxisSuffix=""
+          data={{
+            labels: ['Correct', 'Wrong', 'Unattempted'],
+            datasets: [{ data: [correctCount, wrongCount, unattemptedCount] }],
+          }}
+          width={WIDTH}
+          height={240}
+          fromZero
+          showValuesOnTopOfBars
+          withInnerLines={false}
+          chartConfig={{
+            backgroundGradientFrom: '#1E1E1E',
+            backgroundGradientTo: '#1E1E1E',
+            fillShadowGradient: '#4FC3F7',
+            fillShadowGradientOpacity: 1,
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(79, 195, 247, ${opacity})`,
+            labelColor: () => '#FFF',
+            propsForBackgroundLines: { strokeWidth: 0 },
+            propsForLabels: { fontSize: 13 },
+            propsForVerticalLabels: { fontWeight: '600' },
+            barPercentage: 0.6,
+          }}
+          style={{ marginTop: 12, borderRadius: 12 }}
+        />
       </Card>
 
       <TouchableOpacity style={styles.analyseBtn1} onPress={goToCorrectEdit}>
@@ -197,14 +218,15 @@ function Card({ title, children }: { title: string, children: React.ReactNode })
 const styles = StyleSheet.create({
   container: { paddingTop: 20, alignItems: 'center', backgroundColor: '#0E0E0E' },
   header: { alignItems: 'center', marginBottom: 20 },
-  scoreText: { fontSize: 36, fontWeight: '700', color: '#4FC3F7' },
+  scoreBig: { fontSize: 48, fontWeight: '800', color: '#4FC3F7', marginBottom: 4 },
   accuracyText: { fontSize: 18, color: '#81D4FA', marginBottom: 4 },
+  scoreExplain: { fontSize: 14, color: '#BBB', marginBottom: 4 },
   badge: { fontSize: 16, color: '#A5D6A7', fontWeight: '600' },
-  lottie: { width: 120, height: 120 },
+  lottie: { width: 160, height: 160 },
   statsCard: {
     width: WIDTH,
     backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     elevation: 4,
     marginBottom: 20,
@@ -236,7 +258,7 @@ const styles = StyleSheet.create({
   chartCard: {
     width: WIDTH,
     backgroundColor: '#121212',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     marginBottom: 20,
   },

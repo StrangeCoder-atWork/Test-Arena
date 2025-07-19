@@ -32,12 +32,19 @@ export default function ReviewCorrectAnswersScreen() {
     chapterNumber,
     perQTime,
   } = useLocalSearchParams();
-
+const params = useLocalSearchParams();
   const ua: string[] = JSON.parse(answers as string);
   const ts: number[] = JSON.parse(timestamps as string);
   const total = ua.length;
-
+const subjectParam = params.subject as string;
+  const chapterParam = params.chapter as string;
 const [corrects, setCorrects] = useState<string[]>([]);
+const perQLimit = Math.max(1, parseInt(params.perQTime as string || '60', 10));
+const chapterNumberStr = params.chapterNumber as string;
+  const chapterNum = parseInt(chapterNumberStr || '1', 10);
+  const generateQuestionId = (index: number): string => {
+  return `${exam}-${subject}-${chapter}-${chapterNumber}-${firstQ}-${index}`;
+};
 
 useEffect(() => {
   const loadSavedAnswers = async () => {
@@ -69,6 +76,7 @@ useEffect(() => {
   const handleFinish = async () => {
     const existing = JSON.parse(await AsyncStorage.getItem('@correctAnswers') || '[]');
    const data = Array(total).fill(0).map((_, i) => ({
+    questionId: generateQuestionId(i),
   qIndex: i + 1,
   yourAnswer: ua[i],
   correctAnswer: corrects[i],
@@ -78,6 +86,7 @@ useEffect(() => {
   subject,
   chapter,
   chapterNumber,
+  perQTime,
 }));
 
     await AsyncStorage.setItem('@correctAnswers', JSON.stringify([...existing, ...data]));
@@ -90,10 +99,12 @@ useEffect(() => {
         answers: JSON.stringify(ua),
         timestamps: JSON.stringify(ts),
         corrects: JSON.stringify(corrects),
+        subject: subjectParam,
+      chapter: chapterParam,
       },
     });
   };
-
+const firstQNum = Number(firstQ || '1');
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -123,7 +134,8 @@ useEffect(() => {
                 ]}
               >
                 <Text style={styles.qLabel}>
-                  Q{i + 1}{' '}
+  Q{chapterNumber}.{firstQNum + i}{' '}
+
                   {notAttempted ? (
                     <Text style={{ color: '#FFC107' }}>• Not Attempted</Text>
                   ) : (

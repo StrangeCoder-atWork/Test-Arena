@@ -2,7 +2,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BackHandler } from 'react-native';
+import { BackHandler, InteractionManager } from 'react-native';
+import QuestionCard from './QuestionCard'; // adjust path if needed
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -16,6 +17,10 @@ import {
   View
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
+
+// Add these imports at the top
+import { useTheme } from '../context/ThemeContext';
+import { Colors } from '../constants/Colors';
 
 export default function TestScreen() {
   const pagerRef = React.useRef<PagerView>(null);
@@ -44,6 +49,7 @@ const [showSubmitPanel, setShowSubmitPanel] = useState(false);
       };
     })
   );
+const selectingRef = useRef(false);
 
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState(Array(totalQ).fill(''));
@@ -109,21 +115,36 @@ useEffect(() => {
   };
 
   const select = (opt: string) => {
-    const a = [...answers];
-    a[current] = opt;
-    const t = [...times];
-    t[current] = perTime;
-    setAnswers(a);
-    setTimes(t);
-  };
+  const a = [...answers];
 
-  const navigateQ = (delta: number) => {
-    let next = current + delta;
-    if (next < 0) next = 0;
-    if (next >= questions.length) next = questions.length - 1;
-    setCurrent(next);
-    setGridVisible(false);
-  };
+  if (a[current] === opt) {
+    // ✅ If already selected, unmark it
+    a[current] = '';
+  } else {
+    // ✅ Otherwise, mark it
+    a[current] = opt;
+  }
+
+  const t = [...times];
+  t[current] = perTime;
+
+  setAnswers(a);
+  setTimes(t);
+};
+
+
+const testSessionId = Date.now().toString();
+
+ const navigateQ = (delta: number) => {
+  let next = current + delta;
+  if (next < 0) next = 0;
+  if (next >= questions.length) next = questions.length - 1;
+
+  pagerRef.current?.setPage(next); // ✅ This line is essential!
+  setCurrent(next);
+  setGridVisible(false);
+};
+
 useEffect(() => {
   if (totalLeft === 0) {
     setSubmitForced(true); // 🔴 Forcefully opened due to timeout
@@ -131,7 +152,7 @@ useEffect(() => {
   }
 }, [totalLeft]);
 
-
+const handleGridOpen = () => setGridVisible(true);
 
   const handleSubmit = async () => {
   const attempted = answers.filter((a) => a).length;
@@ -148,23 +169,26 @@ useEffect(() => {
     chapter: chapterParam,
     date: new Date().toISOString(),
   });
+  InteractionManager.runAfterInteractions(async () => {
   await AsyncStorage.setItem('@paperHistory', JSON.stringify(history));
-
- router.replace({
-  pathname: '/correct-answers',
-  params: {
-    answers: JSON.stringify(answers),
-    timestamps: JSON.stringify(times),
-    totalTime: totalLeft,
-    exam: examParam,
-    subject: subjectParam,
-    chapter: chapterParam,
-    firstQ: firstQ.toString(),        // ✅ Added
-    lastQ: lastQ.toString(),          // ✅ Added
-    chapterNumber: chapterNum.toString(), // ✅ Added
-    perQTime: perQLimit.toString(),   // ✅ Added
-  },
+  router.replace({
+    pathname: '/correct-answers',
+    params: {
+      answers: JSON.stringify(answers),
+      timestamps: JSON.stringify(times),
+      totalTime: totalLeft,
+      exam: examParam,
+      subject: subjectParam,
+      chapter: chapterParam,
+      firstQ: firstQ.toString(),
+      lastQ: lastQ.toString(),
+      chapterNumber: chapterNum.toString(),
+      perQTime: perQLimit.toString(),
+      date: new Date().toISOString(),
+    },
+  });
 });
+
 
 };
 
@@ -206,10 +230,7 @@ useEffect(() => {
   <Text style={styles.submitTopTxt}>SUBMIT</Text>
 </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={() => setGridVisible(true)}
-        style={{ marginLeft: 12 }}
-      >
+      <TouchableOpacity onPress={handleGridOpen} style={{margin:10}}>
         <Ionicons name="grid" size={24} color="#FFF" />
       </TouchableOpacity>
     </View>
@@ -220,78 +241,43 @@ useEffect(() => {
 
      <View style={{ flex: 1 }}>
   <PagerView
+  overScrollMode="never"
+  offscreenPageLimit={1}
   style={{ flex: 1 }}
   initialPage={0}
-  onPageSelected={(e) => {
-    setCurrent(e.nativeEvent.position);
-  }}
+  onPageSelected={(e) => setCurrent(e.nativeEvent.position)}
   ref={pagerRef}
 >
   {questions.map((q, index) => (
-    <View key={q.id} style={styles.qArea}>
-      <Text style={styles.qTitle}>{q.text}</Text>
-      {q.options.map((opt) => (
-        <TouchableOpacity
-          key={opt}
-          style={[
-            styles.optionBtn,
-            answers[index] === opt && styles.optionSelected,
-          ]}
-          onPress={() => {
-            const updated = [...answers];
-            updated[index] = opt;
-            const t = [...times];
-            t[index] = perTime;
-            setAnswers(updated);
-            setTimes(t);
-          }}
-        >
-          <Text
-            style={[
-              styles.optionTxt,
-              answers[index] === opt && styles.optionSelectedTxt,
-            ]}
-          >
-            {opt}
-          </Text>
-        </TouchableOpacity>
-      ))}
-      <Text
-        style={[
-          styles.perTime,
-          perTime > perQLimit && styles.perTimeExceeded,
-        ]}
+    <View key={q.id} style={{ flex: 1 }}>
+      {/* ✅ Timer and Buttons ABOVE the ScrollView */}
+      
+
+      {/* ✅ Scrollable question + options */}
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'flex-start',
+          paddingHorizontal: 20,
+          paddingVertical: 20,
+        }}
       >
-        ⏱ {formatTime(index === current ? perTime : 0)}
-      </Text>
-
-      {/* Navigation buttons below question */}
-      <View style={styles.navRow}>
-        <TouchableOpacity
-          onPress={() => {
-            if (current > 0) {
-              pagerRef.current?.setPage(current - 1);
-            }
-          }}
-          style={styles.navBtn}
-        >
-          <Text style={styles.navText}>◀ Prev</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            if (current < questions.length - 1) {
-              pagerRef.current?.setPage(current + 1);
-            }
-          }}
-          style={styles.navBtn}
-        >
-          <Text style={styles.navText}>Next ▶</Text>
-        </TouchableOpacity>
-      </View>
+        <QuestionCard
+          q={q}
+          index={index}
+          current={current}
+          answers={answers}
+          perTime={perTime}
+          perQLimit={perQLimit}
+          select={select}
+          navigateQ={navigateQ}
+          styles={styles}
+        />
+      </ScrollView>
     </View>
   ))}
 </PagerView>
+
 
 
 </View>
@@ -316,7 +302,9 @@ useEffect(() => {
                 ]}
                 onPress={() => {
                   setCurrent(i);
-                  setGridVisible(false);
+pagerRef.current?.setPage(i); // ✅ This makes it jump
+setGridVisible(false);
+
                 }}
               >
                 <Text style={styles.gridTxt}>{q.id}</Text>
@@ -501,7 +489,7 @@ timer: {
 
   qArea: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingVertical: 24,
   },
   qTitle: {
@@ -558,7 +546,7 @@ optionSelectedTxt: {
   navRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 32,
+    marginTop: 10,
   },
   navBtn: {
     backgroundColor: '#1B1B1B',

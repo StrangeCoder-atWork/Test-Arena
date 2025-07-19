@@ -1,14 +1,17 @@
 // app/_layout.tsx
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeProvider } from '../context/ThemeContext';
 import '../global';
 export default function Layout() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+      <ThemeProvider>
+    <SafeAreaView style={{ flex: 1 , backgroundColor: '#0F0F0F'}}>
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="launch" options={{ headerShown: false }} />
       <Stack.Screen name="DashboardScreen" options={{ headerShown: false }} />
+      <Stack.Screen name="BacklogTracker" options={{ headerShown: false }} />
       <Stack.Screen name="reattempt-bookmark" options={{ headerShown: false }} />
       <Stack.Screen name="test-setup" options={{ headerShown: false }} />
       <Stack.Screen name="test" options={{ headerShown: false }} />
@@ -17,5 +20,6 @@ export default function Layout() {
       <Stack.Screen name="history" options={{ headerShown: false }} />
     </Stack>
     </SafeAreaView>
+    </ThemeProvider>
   );
 }

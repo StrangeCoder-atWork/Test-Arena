@@ -1,3 +1,4 @@
+// Updated bookmark.tsx with premium, clean, professional logic
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -28,42 +29,60 @@ export default function BookmarksScreen() {
   const [subjectFilter, setSubjectFilter] = useState<string>('All');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [bms, setBms] = useState<Bookmark[]>([]);
-const [filtered, setFiltered] = useState<Bookmark[]>([]);
+  const [filtered, setFiltered] = useState<Bookmark[]>([]);
   const [filter, setFilter] = useState<'all' | 'correct' | 'wrong'>('all');
   const router = useRouter();
 
   useEffect(() => {
-  AsyncStorage.getItem('@bookmarks').then(v => {
-    if (v) {
-      const parsed = JSON.parse(v) as Bookmark[];
-      const reversed = parsed.reverse();
-      setBms(reversed);
-      setFiltered(reversed);
+    AsyncStorage.getItem('@bookmarks').then((v) => {
+      if (v) {
+        const parsed = JSON.parse(v) as Bookmark[];
+        const reversed = parsed.reverse();
 
-      // 🔍 Collect only subjects that exist in the data
-      const uniqueSubjects = Array.from(
-        new Set(reversed.map(item => item.subject?.trim() || 'Unknown'))
-      );
+        setBms(reversed);
+        reapplyFilters(reversed);
 
-      setSubjects(['All', ...uniqueSubjects]);
-    }
-  });
-}, []);
+        const uniqueSubjects = Array.from(
+          new Set(
+            reversed.map(
+              (item) => item.subject?.trim().toLowerCase() || 'unknown'
+            )
+          )
+        ).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
 
-  const applyFilter = (type: 'all' | 'correct' | 'wrong') => {
-    setFilter(type);
+        setSubjects(['All', ...uniqueSubjects]);
+      }
+    });
+  }, []);
+
+  const reapplyFilters = (
+    updatedBms = bms,
+    type = filter,
+    subject = subjectFilter
+  ) => {
+    let result = [...updatedBms];
+
     if (type === 'correct') {
-      setFiltered(bms.filter(q => q.yourAnswer === q.correctAnswer));
+      result = result.filter((q) => q.yourAnswer === q.correctAnswer);
     } else if (type === 'wrong') {
-      setFiltered(bms.filter(q => q.yourAnswer && q.yourAnswer !== q.correctAnswer));
-    } else {
-      setFiltered(bms);
+      result = result.filter(
+        (q) => q.yourAnswer && q.yourAnswer !== q.correctAnswer
+      );
     }
+
+    if (subject !== 'All') {
+      result = result.filter(
+        (q) =>
+          (q.subject?.trim().toLowerCase() || 'unknown') ===
+          subject.toLowerCase()
+      );
+    }
+
+    setFiltered(result);
   };
 
   return (
     <View style={styles.container}>
-      {/* Navbar */}
       <View style={styles.navbar}>
         <Text style={styles.navTitle}>🔖 Bookmarks</Text>
         <TouchableOpacity onPress={() => router.back()}>
@@ -71,29 +90,23 @@ const [filtered, setFiltered] = useState<Bookmark[]>([]);
         </TouchableOpacity>
       </View>
 
-      {/* Filters */}
       <View style={styles.filterRow}>
-  {subjects.map((subj, index) => (
-    <TouchableOpacity
-      key={index}
-      style={[
-        styles.filterBtn,
-        subjectFilter === subj && styles.activeFilterBtn,
-      ]}
-      onPress={() => {
-        setSubjectFilter(subj);
-        if (subj === 'All') {
-          setFiltered(bms);
-        } else {
-          setFiltered(bms.filter(q => (q.subject?.trim() || 'Unknown') === subj));
-        }
-      }}
-    >
-      <Text style={styles.filterText}>{subj}</Text>
-    </TouchableOpacity>
-  ))}
-</View>
-
+        {subjects.map((subj, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.filterBtn,
+              subjectFilter === subj && styles.activeFilterBtn,
+            ]}
+            onPress={() => {
+              setSubjectFilter(subj);
+              reapplyFilters(bms, filter, subj);
+            }}
+          >
+            <Text style={styles.filterText}>{subj}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {filtered.length === 0 && (
@@ -102,7 +115,6 @@ const [filtered, setFiltered] = useState<Bookmark[]>([]);
 
         {filtered.map((item, index) => (
           <View key={index} style={styles.card}>
-            {/* Header */}
             <View style={styles.header}>
               <Text style={styles.qIndex}>Q{item.questionIndex + 1}</Text>
               <Text style={styles.subChap}>
@@ -127,20 +139,54 @@ const [filtered, setFiltered] = useState<Bookmark[]>([]);
               <Image source={{ uri: item.solutionImage }} style={styles.image} />
             )}
 
-            {/* Action Button */}
             <View style={styles.actionRow}>
               <TouchableOpacity
+                style={[styles.reattemptBtn, { backgroundColor: '#FF5252' }]}
+                onPress={async () => {
+                  const updated = bms.filter((q) => q !== item);
+                  await AsyncStorage.setItem(
+                    '@bookmarks',
+                    JSON.stringify(updated)
+                  );
+                  setBms(updated);
+                  reapplyFilters(updated);
+
+                  const uniqueSubjects = Array.from(
+                    new Set(
+                      updated.map(
+                        (q) => q.subject?.trim().toLowerCase() || 'unknown'
+                      )
+                    )
+                  ).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+                  setSubjects(['All', ...uniqueSubjects]);
+
+                  if (
+                    subjectFilter !== 'All' &&
+                    !updated.find(
+                      (q) =>
+                        (q.subject?.trim().toLowerCase() || 'unknown') ===
+                        subjectFilter.toLowerCase()
+                    )
+                  ) {
+                    setSubjectFilter('All');
+                  }
+                }}
+              >
+                <Text style={styles.reattemptText}>🗑 Remove</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.reattemptBtn}
-                onPress={() =>
+                onPress={() => {
+                  const filteredIndexes = filtered.map((q) => bms.indexOf(q));
                   router.push({
                     pathname: '/reattempt-bookmark',
                     params: {
-                      indexes: JSON.stringify(
-                        filtered.map((_, i) => bms.indexOf(filtered[i]))
-                      ),
+                      indexes: JSON.stringify(filteredIndexes),
+                      startIndex: filteredIndexes.indexOf(bms.indexOf(item)),
                     },
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={styles.reattemptText}>🔁 Reattempt</Text>
               </TouchableOpacity>
@@ -158,28 +204,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B0B0B',
     paddingTop: 35,
   },
-  filterRow: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'center',
-  paddingVertical: 10,
-  backgroundColor: '#121212',
-},
-filterBtn: {
-  backgroundColor: '#222',
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  borderRadius: 6,
-  margin: 4,
-},
-activeFilterBtn: {
-  backgroundColor: '#29B6F6',
-},
-filterText: {
-  color: '#fff',
-  fontSize: 13,
-},
-
   navbar: {
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -194,6 +218,27 @@ filterText: {
     fontSize: 22,
     color: '#29B6F6',
     fontWeight: 'bold',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#121212',
+  },
+  filterBtn: {
+    backgroundColor: '#222',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    margin: 4,
+  },
+  activeFilterBtn: {
+    backgroundColor: '#29B6F6',
+  },
+  filterText: {
+    color: '#fff',
+    fontSize: 13,
   },
   scroll: {
     padding: 16,
@@ -249,9 +294,9 @@ filterText: {
     borderWidth: 1,
   },
   actionRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems:"flex-end",
+    alignItems: 'flex-end',
     marginTop: 8,
   },
   reattemptBtn: {
@@ -259,7 +304,6 @@ filterText: {
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 10,
-    
   },
   reattemptText: {
     color: '#fff',
