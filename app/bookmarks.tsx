@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -141,39 +142,50 @@ export default function BookmarksScreen() {
 
             <View style={styles.actionRow}>
               <TouchableOpacity
-                style={[styles.reattemptBtn, { backgroundColor: '#FF5252' }]}
-                onPress={async () => {
-                  const updated = bms.filter((q) => q !== item);
-                  await AsyncStorage.setItem(
-                    '@bookmarks',
-                    JSON.stringify(updated)
-                  );
-                  setBms(updated);
-                  reapplyFilters(updated);
+  style={styles.reattemptBtn1}
+  onPress={() => {
+    // 🔒 Confirm removal
+    Alert.alert(
+      'Remove Bookmark',
+      'Are you sure you want to delete this bookmark?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = bms.filter((q) => q !== item);
+            await AsyncStorage.setItem('@bookmarks', JSON.stringify(updated));
+            setBms(updated);
+            reapplyFilters(updated);
 
-                  const uniqueSubjects = Array.from(
-                    new Set(
-                      updated.map(
-                        (q) => q.subject?.trim().toLowerCase() || 'unknown'
-                      )
-                    )
-                  ).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
-                  setSubjects(['All', ...uniqueSubjects]);
+            // Update subject filters if needed
+            const uniqueSubjects = Array.from(
+              new Set(updated.map(q => q.subject?.trim().toLowerCase() || 'unknown'))
+            ).map(s => s.charAt(0).toUpperCase() + s.slice(1));
 
-                  if (
-                    subjectFilter !== 'All' &&
-                    !updated.find(
-                      (q) =>
-                        (q.subject?.trim().toLowerCase() || 'unknown') ===
-                        subjectFilter.toLowerCase()
-                    )
-                  ) {
-                    setSubjectFilter('All');
-                  }
-                }}
-              >
-                <Text style={styles.reattemptText}>🗑 Remove</Text>
-              </TouchableOpacity>
+            setSubjects(['All', ...uniqueSubjects]);
+
+            if (
+              subjectFilter !== 'All' &&
+              !updated.find(q =>
+                (q.subject?.trim().toLowerCase() || 'unknown') === subjectFilter.toLowerCase()
+              )
+            ) {
+              setSubjectFilter('All');
+            }
+          },
+        },
+      ]
+    );
+  }}
+>
+  <Text style={styles.reattemptText}>🗑 Remove</Text>
+</TouchableOpacity>
+
 
               <TouchableOpacity
                 style={styles.reattemptBtn}
@@ -301,6 +313,12 @@ const styles = StyleSheet.create({
   },
   reattemptBtn: {
     backgroundColor: '#00C853',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  reattemptBtn1: {
+    backgroundColor: '#8a2424',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 10,

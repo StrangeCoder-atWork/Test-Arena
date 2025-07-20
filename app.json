@@ -4,7 +4,7 @@
     "slug": "question-practice-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app_logo1.png",
+    "icon": "./assets/app_icon.png",
     "scheme": "questionpracticeapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,9 +12,9 @@
       "supportsTablet": true
     },
     "android": {
-      "icon": "./assets/app_logo.png",
+      "icon": "./assets/app_icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app_logo1.png",
+        "foregroundImage": "./assets/app_icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -23,14 +23,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/app_icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/app_logo1.png",
+          "image": "./assets/app_icon.png",
           "imageWidth": 100,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

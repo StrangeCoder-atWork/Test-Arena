@@ -8,7 +8,10 @@ import QuestionCard from './QuestionCard'; // adjust path if needed
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,8 +22,6 @@ import {
 import PagerView from 'react-native-pager-view';
 
 // Add these imports at the top
-import { useTheme } from '../context/ThemeContext';
-import { Colors } from '../constants/Colors';
 
 export default function TestScreen() {
   const pagerRef = React.useRef<PagerView>(null);
@@ -215,6 +216,20 @@ useEffect(() => {
 }, [totalLeft]);
 
   return (
+    <SafeAreaView style={styles.safeArea}>
+      {/* Keeps inputs visible when the keyboard is open (iOS & Android) */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* MAIN SCROLLER */}
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          bounces
+        >
     <View style={styles.container}>
       <View style={styles.navbar}>
     {/* Left side - Title */}
@@ -370,6 +385,9 @@ setGridVisible(false);
 </Modal>
 
     </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 const { height, width } = Dimensions.get('window');
@@ -614,6 +632,12 @@ optionSelectedTxt: {
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
+  safeArea: { flex: 1, backgroundColor: '#0A0A0B' },
+  flex:      { flex: 1 },
+  /* Ensures the ScrollView is scrollable even when content is shorter than screen */
+  scrollContainer: { flexGrow: 1, paddingBottom: 40 },
+  /* Optional wrapper for additional padding / alignment */
+  content: { paddingHorizontal: 24, paddingTop: 60 },
   gridItem: {
     width: 50,
     height: 50,
